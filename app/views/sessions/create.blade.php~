@@ -1,0 +1,21 @@
+@extends('layouts.base')
+
+@section('pageTitle', 'Login')
+
+@section('content')
+
+{{ Form::open(['route' => 'SessionsController@store']) }}
+
+{{ Form::label('email', 'Email: ') }}
+{{ Form::email('email') }}
+{{ $errors->first('email') }}
+
+{{ Form::label('password', 'Password: ') }}
+{{ Form::password('password') }}
+{{ $errors->first('password') }}
+
+{{ Form::submit('Login') }}
+
+{{ Form::close() }}
+
+@endsection
