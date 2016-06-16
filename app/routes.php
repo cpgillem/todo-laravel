@@ -47,3 +47,8 @@ Route::get('/logout', function() {
   Auth::logout();
   return Redirect::to('/');
 });
+
+/* REST API Routes */
+Route::group(['prefix' => 'api', 'before' => 'auth.basic'], function() {
+  Route::resource('task', 'APITaskController');
+});
