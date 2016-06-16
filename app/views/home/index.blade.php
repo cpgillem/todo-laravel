@@ -12,35 +12,43 @@
   <div class="row">
     <div class="column large-4">
       <h3>Your Mission</h3>
-      <h5><span class="badge">{{ $nextTask->id }}</span> {{ $nextTask->description }}</h5>
-      <p>
+      @if (isset($nextTask))
 
-      @if (isset($nextTask->due))
-        <strong>Due: </strong>{{ $nextTask->due }}
-        
-        @if ($nextTaskIsOverdue)
-          <span class="alert label">Overdue</span>
+        <h5><span class="badge">{{ $nextTask->id }}</span> {{ $nextTask->description }}</h5>
+        <p>
+
+        @if (isset($nextTask->due))
+          <strong>Due: </strong>{{ $nextTask->due }}
+          
+          @if ($nextTaskIsOverdue)
+            <span class="alert label">Overdue</span>
+          @endif
+
         @endif
 
-      @endif
+        </p>
 
-      </p>
+        @if (count($nextTask->dependencies) > 0)
 
-      @if (count($nextTask->dependencies) > 0)
+        <p>
+          <strong>Depends On: </strong>
 
-      <p>
-        <strong>Depends On: </strong>
+          @foreach ($nextTask->dependencies as $dependency)
 
-        @foreach ($nextTask->dependencies as $dependency)
+          <span class="badge">{{ $dependency->id }}</span>
+          {{ $dependency->description }}
+          @if ($dependency->done)
+            <span class="success label">Done</span>
+          @endif
 
-        <span class="badge">{{ $dependency->id }}</span>
-        {{ $dependency->description }}
-        @if ($dependency->done)
-          <span class="success label">Done</span>
+          @endforeach
+        </p>
+
         @endif
 
-        @endforeach
-      </p>
+      @else
+
+        <p>Nothing!</p>
 
       @endif
     </div>
