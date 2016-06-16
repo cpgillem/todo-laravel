@@ -20,7 +20,7 @@ class HomeController extends BaseController {
   public function index() {
     if (Auth::check()) {
       $nextTask = Auth::user()->tasks()->where('done', '=', '0')->orderByRaw('-due desc')->first();
-      $nextTaskIsOverdue = Carbon::now()->gt(Carbon::parse($nextTask->due));
+      $nextTaskIsOverdue = isset($nextTask) ? Carbon::now()->gt(Carbon::parse($nextTask->due)) : false;
       /* Variables: $nextTask, $agenda, $completeTasks, $incompleteTasks, $overdueTasks */
       return View::make('home.index', [
         'authed' => true,
