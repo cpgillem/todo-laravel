@@ -11,9 +11,9 @@
         <li> {{ HTML::link('users/create', 'Register') }} </li>
         <li> 
           @if (Auth::check())
-            {{ HTML::link('sessions/destroy', 'Logout') }}
+            {{ HTML::link('logout', 'Logout') }}
           @else
-            {{ HTML::link('sessions/create', 'Login') }} 
+            {{ HTML::link('login', 'Login') }} 
           @endif
         </li>
       </ul>

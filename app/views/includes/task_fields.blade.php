@@ -1,8 +1,18 @@
 <script>
   $(function() {
-    $("#datepicker_due").datepicker({
+    $("#datepicker_due_date").datepicker({
       dateFormat: "yy-mm-dd"
     });
+  });
+
+  $(function() {
+    $("#spinner_due_time_hours").spinner({
+      
+    });
+  });
+
+  $(function() {
+    $("#spinner_due_time_minutes").spinner();
   });
 </script>
 
@@ -16,11 +26,20 @@
 </div>
 
 <div class="row column">
-  {{ Form::label('due', 'Due') }}
-  {{ Form::text('due', null, ['id' => 'datepicker_due']) }}
+  {{ Form::label('due_date', 'Due Date') }}
+  {{ Form::text('due_date', null, ['id' => 'datepicker_due_date']) }}
 
   @if (isset($errors))
-  <p class="help-text">{{ $errors->first('due') }}</p>
+  <p class="help-text">{{ $errors->first('due_date') }}</p>
+  @endif
+</div>
+
+<div class="row column">
+  {{ Form::label('due_time', 'Due Time'); }}
+  {{ Form::text('due_time', null, ['id' => 'spinner_due_time']) }}
+
+  @if (isset($errors))
+  <p class="help-text">{{ $errors->first('due_time') }}</p>
   @endif
 </div>
 

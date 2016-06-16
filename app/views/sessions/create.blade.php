@@ -4,7 +4,7 @@
 
 @section('content')
 
-{{ Form::open(['route' => 'sessions.store']) }}
+{{ Form::open(['url' => 'login']) }}
 
 <div class="row column">
   {{ Form::label('email', 'Email') }}

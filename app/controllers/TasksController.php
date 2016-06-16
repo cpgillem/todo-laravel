@@ -4,6 +4,10 @@ use Carbon\Carbon;
 
 class TasksController extends \BaseController {
 
+  public function __construct() {
+    $this->beforeFilter('auth.basic');
+  }
+
 	/**
 	 * Display a listing of the resource.
 	 *
@@ -11,28 +15,24 @@ class TasksController extends \BaseController {
 	 */
 	public function index()
 	{
-    if (Auth::check()) {
-      /* Get all dates, earliest due dates first. Null date values will be last. Finished tasks
-       * will be at the bottom no matter what. */
+    /* Get all dates, earliest due dates first. Null date values will be last. Finished tasks
+     * will be at the bottom no matter what. */
 
-      /* SOURCE FOR -due desc SYNTAX */
-      /* http://stackoverflow.com/questions/2051602/mysql-orderby-a-number-nulls-last */
-      $tasks = Auth::user()->tasks()->orderByRaw('done, -due desc')->get();
+    /* SOURCE FOR -due desc SYNTAX */
+    /* http://stackoverflow.com/questions/2051602/mysql-orderby-a-number-nulls-last */
+    $tasks = Auth::user()->tasks()->orderByRaw('done, -due desc')->get();
 
-      /* For each task that is overdue, add it to an array of overdue tasks. */
-      $overdue = array();
-      foreach ($tasks as $task) {
-        $now = Carbon::now();
-        $task_due = Carbon::parse($task->due);
-        if ($now->gt($task_due)) {
-          $overdue[] = $task;
-        }
+    /* For each task that is overdue, add it to an array of overdue tasks. */
+    $overdue = array();
+    foreach ($tasks as $task) {
+      $now = Carbon::now();
+      $task_due = Carbon::parse($task->due);
+      if ($now->gt($task_due)) {
+        $overdue[] = $task;
       }
-
-      return View::make('tasks.index')->with('tasks', $tasks)->with('overdue', $overdue);
-    } else {
-      return Redirect::action('HomeController@index');
     }
+
+    return View::make('tasks.index')->with('tasks', $tasks)->with('overdue', $overdue);
 	}
 
 
@@ -54,30 +54,26 @@ class TasksController extends \BaseController {
 	 */
 	public function store()
 	{
-    if (Auth::check()) {
-      $input = Input::all();
-      $validator = Validator::make(Input::all(), [
-        'description' => 'required',
-        'due' => 'sometimes|date'
+    $input = Input::all();
+    $validator = Validator::make(Input::all(), [
+      'description' => 'required',
+      'due' => 'sometimes|date'
+    ]);
+
+    if ($validator->passes()) {
+      $task = Task::create([
+        'description' => Input::get('description'),
+        'user' => Auth::user()->id
       ]);
 
-      if ($validator->passes()) {
-        $task = Task::create([
-          'description' => Input::get('description'),
-          'user' => Auth::user()->id
-        ]);
-
-        if (Input::has('due')) {
-          $task->due = Input::get('due');
-          $task->save();
-        }
-
-        return Redirect::route('tasks.index');
-      } else {
-        return Redirect::back()->withInput()->withErrors($validator->messages());
+      if (Input::has('due')) {
+        $task->due = Input::get('due');
+        $task->save();
       }
+
+      return Redirect::route('tasks.index');
     } else {
-      return Redirect::action('HomeController@index', ['message', 'Please log in to create a task.']);
+      return Redirect::back()->withInput()->withErrors($validator->messages());
     }
   }
 
@@ -101,27 +97,23 @@ class TasksController extends \BaseController {
       'dependency' => 'required|exists:tasks,id|unique:dependencies,dependency_id,NULL,id,task_id,' . $id . '|not_in:' . $id
     ]);
 
-    if (Auth::check()) {
-      if (Auth::user()->id == $task->user) {
-        if ($validator->passes()) {
-          $task->dependencies()->attach(Input::get('dependency'));
+    if (Auth::user()->id == $task->user) {
+      if ($validator->passes()) {
+        $task->dependencies()->attach(Input::get('dependency'));
 
-          /* Make sure all parents of the new dependency are marked as unfinished if the new dependency is unfinished. */
-          if (! Task::find(Input::get('dependency'))->done) {
-            $task->done = false;
-            $task->save();
-            $this->unfinishAllParents($task);
-          }
-
-          return Redirect::route('tasks.index');
-        } else {
-          return Redirect::back()->withInput()->withErrors($validator->messages());
+        /* Make sure all parents of the new dependency are marked as unfinished if the new dependency is unfinished. */
+        if (! Task::find(Input::get('dependency'))->done) {
+          $task->done = false;
+          $task->save();
+          $this->unfinishAllParents($task);
         }
+
+        return Redirect::route('tasks.index');
       } else {
-        return Redirect::route('tasks.index', ['message', 'You are not authorized to edit this task.']);
+        return Redirect::back()->withInput()->withErrors($validator->messages());
       }
     } else {
-      return Redirect::action('HomeController@index', ['message', 'Please log in to edit a task.']);
+      return Redirect::route('tasks.index', ['message', 'You are not authorized to edit this task.']);
     }
   }
 
@@ -150,19 +142,15 @@ class TasksController extends \BaseController {
       'dependency' => 'required|exists:tasks,id'
     ]);
 
-    if (Auth::check()) {
-      if (Auth::user()->id == $task->user) {
-        if ($validator->passes()) {
-          $task->dependencies()->detach(Input::get('dependency'));
-          return Redirect::route('tasks.index');
-        } else {
-          return Redirect::back()->withInput()->withErrors($validator->messages());
-        }
+    if (Auth::user()->id == $task->user) {
+      if ($validator->passes()) {
+        $task->dependencies()->detach(Input::get('dependency'));
+        return Redirect::route('tasks.index');
       } else {
-        return Redirect::route('tasks.index')->with('message', 'You are not authorized to delete that dependency.');
+        return Redirect::back()->withInput()->withErrors($validator->messages());
       }
     } else {
-      return Redirect::action('HomeController@index')->with('message', 'Please log in to edit task dependencies.');
+      return Redirect::route('tasks.index')->with('message', 'You are not authorized to delete that dependency.');
     }
   }
 
@@ -177,7 +165,7 @@ class TasksController extends \BaseController {
 	{
     $task = Task::findOrFail($id);
 
-    if (Auth::check() && $task->id == Auth::user()->id) {
+    if ($task->id == Auth::user()->id) {
       return View::make('tasks.show')->with('task', $task);
     } else {
       return Redirect::action('HomeController@index', ['message', 'Please log in to see a task.'])->withMessage();
@@ -250,38 +238,34 @@ class TasksController extends \BaseController {
       'done' => 'boolean',
     ]);
 
-    if (Auth::check()) {
-      /* Make sure the user has permission to edit this task. */
-      if (Auth::user()->id == $task->user) {
-        if ($validator->passes()) {
-          $task->done = Input::get('done');
+    /* Make sure the user has permission to edit this task. */
+    if (Auth::user()->id == $task->user) {
+      if ($validator->passes()) {
+        $task->done = Input::get('done');
 
-          if ($task->done) {
-            /* If this task is finished, mark all dependencies as done, too. */
-            $this->finishAllDependencies($task);
-          } else {
-            /* Mark all tasks that depend on this one as unfinished. */
-            $this->unfinishAllParents($task);
-          }
-
-          $task->description = Input::get('description');
-          
-          if (Input::get('due') == "") {
-            $task->due = NULL;
-          } else {
-            $task->due = Input::get('due');
-          }
-
-          $task->save();
-          return Redirect::route('tasks.index');
+        if ($task->done) {
+          /* If this task is finished, mark all dependencies as done, too. */
+          $this->finishAllDependencies($task);
         } else {
-          return Redirect::back()->withInput()->withErrors($validator->messages());
+          /* Mark all tasks that depend on this one as unfinished. */
+          $this->unfinishAllParents($task);
         }
+
+        $task->description = Input::get('description');
+        
+        if (Input::get('due') == "") {
+          $task->due = NULL;
+        } else {
+          $task->due = Input::get('due');
+        }
+
+        $task->save();
+        return Redirect::route('tasks.index');
       } else {
-        return Redirect::route('tasks.index')->with('message', 'You are not authorized to edit this task.');
+        return Redirect::back()->withInput()->withErrors($validator->messages());
       }
     } else {
-      return Redirect::action('HomeController@index')->with('message', 'Please log in to edit tasks.');
+      return Redirect::route('tasks.index')->with('message', 'You are not authorized to edit this task.');
     }
 	}
 
@@ -296,15 +280,11 @@ class TasksController extends \BaseController {
 	{
     $task = Task::findOrFail($id);
 
-    if (Auth::check()) {
-      if (Auth::user()->id == $task->user) {
-        $task->delete();
-        return Redirect::route('tasks.index');
-      } else {
-        return Redirect::route('tasks.index')->with('message', 'You do not have permission to delete this task.');
-      }
+    if (Auth::user()->id == $task->user) {
+      $task->delete();
+      return Redirect::route('tasks.index');
     } else {
-      return Redirect::action('HomeController@index')->with('message', 'Please log in to delete a task.');
+      return Redirect::route('tasks.index')->with('message', 'You do not have permission to delete this task.');
     }
 	}
 
@@ -313,12 +293,8 @@ class TasksController extends \BaseController {
    * Remove all tasks by this user that are done.
    */
   public function purgeDone() {
-    if (Auth::check()) {
-      Auth::user()->tasks()->where('done', '>', '0')->delete();
-      return Redirect::route('tasks.index');
-    } else {
-      return Redirect::action('HomeController@index')->with('message', 'Please log in to purge tasks.');
-    }
+    Auth::user()->tasks()->where('done', '>', '0')->delete();
+    return Redirect::route('tasks.index');
   }
 
 }
