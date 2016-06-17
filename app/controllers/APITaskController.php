@@ -13,10 +13,16 @@ class APITaskController extends \BaseController {
    *   overdue: (boolean) Whether to include overdue or not overdue tasks. If
    *            not defined, all tasks are returned as long as they match other
    *            criteria.
-	 *
+   *
    *   limit: (integer) Limit the query to a number of items. If not defined,
    *          all tasks are returned.
    *
+   *   dependency_of: (integer) Only return tasks that depend on the task
+   *               identified by this value (children).
+   *   
+   *   has_dependency: (integer) Only return tasks that have the given task as a
+   *             dependency (parents).
+	 *
 	 * @return Response
 	 */
 	public function index()
@@ -24,6 +30,8 @@ class APITaskController extends \BaseController {
     $validator = Validator::make(Input::all(), [
       'done' => 'boolean',
       'overdue' => 'boolean',
+      'dependency_of' => 'integer|exists:tasks,id',
+      'has_dependency' => 'integer|exists:tasks,id',
       'limit' => 'integer'
     ]);
 
@@ -48,9 +56,23 @@ class APITaskController extends \BaseController {
 
       $tasks = $tasks->get();
 
+      /* Filter the collection accordingly. */
+      if (Input::has('dependency_of')) {
+        $tasks = $tasks->filter(function($task) {
+          $parent = Auth::user()->tasks()->find(Input::get('dependency_of'));
+          return $parent->dependencies->contains($task->id);
+        });
+      }
+      if (Input::has('has_dependency')) {
+        $tasks = $tasks->filter(function($task) {
+          $child = Auth::user()->tasks()->find(Input::get('has_dependency'));
+          return $child->parents->contains($task->id);
+        });
+      }
+
       return Response::json([
         'error' => false,
-        'tasks' => $tasks
+        'tasks' => $tasks->toJson()
       ], 200);
     } else {
       return Response::json([
@@ -103,7 +125,7 @@ class APITaskController extends \BaseController {
 
       return Response::json([
         'error' => false,
-        'task' => $task->toJson()
+        'resource' => $task->toJson()
       ], 200);
     } else {
       return Response::json([
@@ -129,7 +151,7 @@ class APITaskController extends \BaseController {
     if ($task->user == Auth::user()->id) {
       return Response::json([
         'error' => false,
-        'task' => $task->toJson()
+        'resource' => $task->toJson()
       ], 200);
     } else {
       // Not your task
@@ -191,7 +213,7 @@ class APITaskController extends \BaseController {
 
         return Response::json([
           'error' => false,
-          'task' => $task->toJson()
+          'resource' => $task->toJson()
         ], 200);
 
       } else {

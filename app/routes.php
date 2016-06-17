@@ -25,7 +25,7 @@ Route::resource('/tasks', 'TasksController');
 /* User Routes */
 Route::resource('/users', 'UsersController');
 
-/* Aliases */
+/* Authentication [will be removed soon] */
 Route::get('/login', function() {
   if (Auth::check()) {
     return Redirect::route('tasks.index');
@@ -50,5 +50,9 @@ Route::get('/logout', function() {
 
 /* REST API Routes */
 Route::group(['prefix' => 'api', 'before' => 'auth.basic'], function() {
+  /* Tasks */
   Route::resource('task', 'APITaskController');
+
+  /* Dependencies */
+  Route::resource('dependency', 'APIDependencyController');
 });
