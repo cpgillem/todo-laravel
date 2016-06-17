@@ -4,19 +4,60 @@ class APITaskController extends \BaseController {
 
 	/**
 	 * Display a listing of the resource.
+   *
+   * GET Request Attributes in order of application to the query:
+   *
+   *   done: (boolean) Whether to include finished or unfinished tasks. If not
+   *         defined, all tasks are returned.
+   *
+   *   overdue: (boolean) Whether to include overdue or not overdue tasks. If
+   *            not defined, all tasks are returned as long as they match other
+   *            criteria.
 	 *
+   *   limit: (integer) Limit the query to a number of items. If not defined,
+   *          all tasks are returned.
+   *
 	 * @return Response
 	 */
 	public function index()
 	{
-    /* Get all the user's tasks. */
-    $tasks = Auth::user()->tasks;
+    $validator = Validator::make(Input::all(), [
+      'done' => 'boolean',
+      'overdue' => 'boolean',
+      'limit' => 'integer'
+    ]);
 
-    return Response::json([
-      'error' => false,
-      'tasks' => $tasks->toArray()],
-      200
-    );
+    if ($validator->passes()) {
+      $tasks = Auth::user()->tasks();
+
+      if (Input::has('done')) {
+        $tasks = $tasks->where('done', '=', Input::get('done'));
+      }
+
+      if (Input::has('overdue')) {
+        if (Input::get('overdue')) {
+          $tasks = $tasks->where('due', '<', DB::raw('NOW()'))->where('due', '!=', 'NULL');
+        } else {
+          $tasks = $tasks->where('due', '>=', DB::raw('NOW()'));
+        }
+      }
+
+      if (Input::has('limit')) {
+        $tasks = $tasks->take(Input::get('limit'));
+      }
+
+      $tasks = $tasks->get();
+
+      return Response::json([
+        'error' => false,
+        'tasks' => $tasks
+      ], 200);
+    } else {
+      return Response::json([
+        'error' => true,
+        'message' => 'Invalid data.'
+      ], 400);
+    }
 	}
 
 

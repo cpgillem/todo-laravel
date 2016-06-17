@@ -29,7 +29,7 @@ class HomeController extends BaseController {
         'agenda' => Auth::user()->tasks()->where('done', '=', '0')->orderByRaw('-due desc')->take(5)->get(),
         'completeTasks' => Auth::user()->tasks()->where('done', '>', '0')->count(),
         'incompleteTasks' => Auth::user()->tasks()->where('done', '=', '0')->count(),
-        'overdueTasks' => Auth::user()->tasks()->where('due', '<', 'DATE(NOW())')->count()
+        'overdueTasks' => Auth::user()->tasks()->where('due', '<', 'NOW()')->count()
       ]);
     } else {
       return View::make('home.index', [

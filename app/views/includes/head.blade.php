@@ -12,5 +12,11 @@
 <!-- JQuery UI -->
 <script src="{{ URL::asset('packages/jquery-ui-1.11.4/jquery-ui.min.js') }}"></script>
 
+<!-- Backbone.js -->
+<script src="http://backbonejs.org/backbone-min.js"></script>
+
 <!-- Compressed JavaScript for Foundation -->
 <script src="https://cdn.jsdelivr.net/foundation/6.2.1/foundation.min.js"></script>
+
+<!-- Main Backbone Code -->
+<script type="text/javascript" src="{{ URL::asset('js/app.js') }}"></script>
